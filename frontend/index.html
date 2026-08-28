@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FreshSense — IoT Food Freshness Monitoring</title>
+  <meta name="description" content="Real-time IoT-based food freshness scoring system using machine learning sensor analysis and food image recognition.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="js/chart.min.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ─── Animated background ─────────────────────────────────── -->
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="app-shell">
+
+    <!-- ─── Sidebar ──────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <span class="logo-icon">🌿</span>
+        <div class="logo-text">
+          <span class="logo-name">FreshSense</span>
+          <span class="logo-tag">IoT Food Monitor</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">
+          <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('predict')" id="nav-predict">
+          <span class="nav-icon">🔬</span><span class="nav-label">Predict</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('history')" id="nav-history">
+          <span class="nav-icon">📋</span><span class="nav-label">History</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('analytics')" id="nav-analytics">
+          <span class="nav-icon">📈</span><span class="nav-label">Analytics</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="model-badge" id="freshnessBadge">
+          <span class="badge-dot"></span>
+          <span class="badge-text">Freshness Model</span>
+        </div>
+        <div class="model-badge" id="iotLiveBadge">
+          <span class="badge-dot" id="iotDot"></span>
+          <span class="badge-text" id="iotBadgeText">ESP32 waiting...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ─── Main Content ──────────────────────────────────────── -->
+    <main class="main-content">
+
+      <!-- ── DASHBOARD TAB ──────────────────────────────────── -->
+      <div class="tab-panel active" id="tab-dashboard">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Real-time food freshness overview</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span id="liveIndicator" style="display:none;font-size:0.75rem;font-weight:600;color:#10b981;align-items:center;gap:6px">
+              <span style="width:8px;height:8px;background:#10b981;border-radius:50%;display:inline-block;animation:pulse 1.5s infinite"></span>
+              LIVE · ESP32
+            </span>
+            <button class="btn btn-ghost" onclick="refreshDashboard()">
+              <span id="refreshIcon">🔄</span> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card" id="statTotal">
+            <div class="stat-icon">📦</div>
+            <div class="stat-body">
+              <div class="stat-value" id="statTotalVal">—</div>
+              <div class="stat-label">Total Predictions</div>
+            </div>
+          </div>
+          <div class="stat-card stat-warning" id="statSpoiled">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-body">
+              <div class="stat-value" id="statSpoiledVal">—</div>
+              <div class="stat-label">Spoilage Rate</div>
+            </div>
+          </div>
+          <div class="stat-card stat-success" id="statFresh">
+            <div class="stat-icon">✅</div>
+            <div class="stat-body">
+              <div class="stat-value" id="statFreshVal">—</div>
+              <div class="stat-label">Avg Freshness</div>
+            </div>
+          </div>
+          <div class="stat-card stat-info" id="statDays">
+            <div class="stat-icon">📅</div>
+            <div class="stat-body">
+              <div class="stat-value" id="statDaysVal">—</div>
+              <div class="stat-label">Avg Days Left</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ESP32 Live Feed card -->
+        <div class="card esp32-feed-card" id="esp32FeedCard">
+          <div class="card-header">
+            <h2 class="card-title">⚡ ESP32 Live Feed</h2>
+            <div class="esp32-conn-badge" id="esp32ConnBadge">
+              <span class="badge-dot" id="esp32FeedDot"></span>
+              <span id="esp32FeedStatus">Waiting for data…</span>
+            </div>
+          </div>
+          <div class="esp32-sensor-row" id="esp32SensorRow">
+            <div class="esp32-sensor-tile">
+              <span class="esp32-tile-icon">🌡️</span>
+              <span class="esp32-tile-val" id="feedTemp">—</span>
+              <span class="esp32-tile-lbl">Temp °C</span>
+            </div>
+            <div class="esp32-sensor-tile">
+              <span class="esp32-tile-icon">💧</span>
+              <span class="esp32-tile-val" id="feedHumid">—</span>
+              <span class="esp32-tile-lbl">Humidity %</span>
+            </div>
+            <div class="esp32-sensor-tile">
+              <span class="esp32-tile-icon">💨</span>
+              <span class="esp32-tile-val" id="feedGas">—</span>
+              <span class="esp32-tile-lbl">Gas ppm</span>
+            </div>
+            <div class="esp32-sensor-tile">
+              <span class="esp32-tile-icon">🍽️</span>
+              <span class="esp32-tile-val esp32-food-val" id="feedFood">—</span>
+              <span class="esp32-tile-lbl">Food Type</span>
+            </div>
+          </div>
+          <div class="esp32-result-row" id="esp32ResultRow" style="display:none">
+            <div class="esp32-result-freshness">
+              <canvas id="feedGauge" width="100" height="100"></canvas>
+              <div class="gauge-center">
+                <div class="gauge-value" style="font-size:1.1rem" id="feedGaugePct">—</div>
+                <div class="gauge-label">Fresh</div>
+              </div>
+            </div>
+            <div class="esp32-result-details">
+              <div class="esp32-result-status" id="feedStatusBadge">—</div>
+              <div class="esp32-result-meta">
+                <span>📅 <strong id="feedDays">—</strong> days left</span>
+                <span>🎯 Confidence: <strong id="feedConf">—</strong></span>
+                <span>🕐 <span id="feedTime">—</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="esp32-no-data" id="esp32NoData">
+            <span>📡</span> Waiting for ESP32 to send data… (checks every 10 s)
+          </div>
+        </div>
+
+        <!-- Latest result -->
+        <div class="card" id="latestCard" style="display:none">
+          <div class="card-header">
+            <h2 class="card-title">Latest Prediction</h2>
+            <span class="card-badge" id="latestTimestamp">—</span>
+          </div>
+          <div class="latest-grid">
+            <div class="freshness-gauge-wrap">
+              <canvas id="gaugeCanvas" width="220" height="220"></canvas>
+              <div class="gauge-center">
+                <div class="gauge-value" id="gaugePct">—</div>
+                <div class="gauge-label">Freshness</div>
+              </div>
+            </div>
+            <div class="latest-details">
+              <div class="detail-item">
+                <span class="detail-label">Food Type</span>
+                <span class="detail-value" id="latestFood">—</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Status</span>
+                <span class="detail-value status-badge" id="latestStatus">—</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Remaining Days</span>
+                <span class="detail-value" id="latestDays">—</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Confidence</span>
+                <span class="detail-value" id="latestConf">—</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Temperature</span>
+                <span class="detail-value" id="latestTemp">—</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Humidity</span>
+                <span class="detail-value" id="latestHumidity">—</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Gas ppm</span>
+                <span class="detail-value" id="latestGas">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card empty-state" id="dashboardEmpty">
+          <div class="empty-icon">🥗</div>
+          <h3>No predictions yet</h3>
+          <p>Go to <strong>Predict</strong> to run your first freshness check!</p>
+          <button class="btn btn-primary" onclick="switchTab('predict')">Start Predicting →</button>
+        </div>
+      </div>
+
+      <!-- ── PREDICT TAB ────────────────────────────────────── -->
+      <div class="tab-panel" id="tab-predict">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Freshness Prediction</h1>
+            <p class="page-subtitle">Enter sensor readings to analyze food freshness</p>
+          </div>
+        </div>
+
+        <div class="predict-layout">
+          <!-- Form -->
+          <div class="card predict-form-card">
+            <div class="card-header">
+              <h2 class="card-title">🔬 Sensor Input</h2>
+              <span class="card-hint">Fill in all fields</span>
+            </div>
+
+            <form id="predictionForm" onsubmit="submitPrediction(event)">
+              <!-- Food type -->
+              <div class="form-group">
+                <label class="form-label" for="foodType">Food Type</label>
+                <select id="foodType" class="form-control" required>
+                  <option value="">Select food type...</option>
+                </select>
+                <span class="form-hint" id="foodTypeHint"></span>
+              </div>
+
+              <!-- ESP32 Auto-fill -->
+              <div class="esp32-autofill-bar">
+                <div class="esp32-autofill-left">
+                  <span class="esp32-autofill-icon">⚡</span>
+                  <div>
+                    <div class="esp32-autofill-title">Sensor Values</div>
+                    <div class="esp32-autofill-sub">Auto-fill from your ESP32 hardware</div>
+                  </div>
+                </div>
+                <div class="esp32-autofill-right">
+                  <span id="esp32FillBadge" style="display:none;font-size:0.7rem;color:#10b981;font-weight:500;"></span>
+                  <button type="button" id="esp32FillBtn" class="btn-esp32-fill" onclick="fillFromESP32(true)">
+                    📡 Read from ESP32
+                  </button>
+                </div>
+              </div>
+              <div class="sensor-grid">
+                <div class="sensor-card" id="sensorTemp">
+                  <div class="sensor-header">
+                    <span class="sensor-icon">🌡️</span>
+                    <span class="sensor-name">Temperature</span>
+                    <span class="sensor-unit">°C</span>
+                  </div>
+                  <input type="range" id="tempSlider" min="-20" max="50" step="0.5" value="5"
+                         class="slider" oninput="syncInput('tempSlider','temperatureInput')">
+                  <input type="number" id="temperatureInput" class="sensor-number-input"
+                         min="-20" max="50" step="0.1" value="5" required
+                         oninput="syncSlider('temperatureInput','tempSlider')">
+                  <div class="sensor-bar-wrap"><div class="sensor-bar" id="tempBar"></div></div>
+                </div>
+
+                <div class="sensor-card" id="sensorHumidity">
+                  <div class="sensor-header">
+                    <span class="sensor-icon">💧</span>
+                    <span class="sensor-name">Humidity</span>
+                    <span class="sensor-unit">%</span>
+                  </div>
+                  <input type="range" id="humidSlider" min="0" max="100" step="0.5" value="70"
+                         class="slider" oninput="syncInput('humidSlider','humidityInput')">
+                  <input type="number" id="humidityInput" class="sensor-number-input"
+                         min="0" max="100" step="0.1" value="70" required
+                         oninput="syncSlider('humidityInput','humidSlider')">
+                  <div class="sensor-bar-wrap"><div class="sensor-bar" id="humidBar"></div></div>
+                </div>
+
+                <div class="sensor-card" id="sensorGas">
+                  <div class="sensor-header">
+                    <span class="sensor-icon">💨</span>
+                    <span class="sensor-name">Gas Concentration</span>
+                    <span class="sensor-unit">ppm</span>
+                  </div>
+                  <input type="range" id="gasSlider" min="0" max="2" step="0.01" value="0.3"
+                         class="slider" oninput="syncInput('gasSlider','gasInput')">
+                  <input type="number" id="gasInput" class="sensor-number-input"
+                         min="0" max="5" step="0.01" value="0.3" required
+                         oninput="syncSlider('gasInput','gasSlider')">
+                  <div class="sensor-bar-wrap"><div class="sensor-bar" id="gasBar"></div></div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-full" id="predictBtn">
+                <span class="btn-icon">🔬</span> Analyze Freshness
+              </button>
+            </form>
+          </div>
+
+          <!-- Results -->
+          <div id="resultPanel" class="card result-panel" style="display:none">
+            <div class="card-header">
+              <h2 class="card-title">📋 Results</h2>
+              <span class="result-food-badge" id="resultFoodBadge">—</span>
+            </div>
+
+            <div class="result-gauge-wrap">
+              <canvas id="resultGauge" width="200" height="200"></canvas>
+              <div class="gauge-center">
+                <div class="gauge-value" id="resultPct">—</div>
+                <div class="gauge-label">Freshness</div>
+              </div>
+            </div>
+
+            <div class="result-status-wrap">
+              <div class="result-status-badge" id="resultStatusBig">—</div>
+            </div>
+
+            <div class="result-metrics">
+              <div class="metric-card">
+                <span class="metric-icon">📅</span>
+                <span class="metric-val" id="resultDays">—</span>
+                <span class="metric-lbl">Days Left</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-icon">🎯</span>
+                <span class="metric-val" id="resultConf">—</span>
+                <span class="metric-lbl">Confidence</span>
+              </div>
+            </div>
+
+            <div class="recommendations-box" id="recommendationsBox">
+              <h4>💡 Recommendations</h4>
+              <ul id="recommendationsList"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+
+      <!-- ── HISTORY TAB ────────────────────────────────────── -->
+      <div class="tab-panel" id="tab-history">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Prediction History</h1>
+            <p class="page-subtitle">All recorded freshness predictions</p>
+          </div>
+          <button class="btn btn-danger-ghost" onclick="clearHistory()">🗑 Clear All</button>
+        </div>
+
+        <!-- Filters -->
+        <div class="card filter-card">
+          <div class="filter-row">
+            <div class="form-group form-group-sm">
+              <label class="form-label">Filter by Food</label>
+              <select id="historyFoodFilter" class="form-control" onchange="loadHistory()">
+                <option value="">All foods</option>
+              </select>
+            </div>
+            <div class="form-group form-group-sm">
+              <label class="form-label">Filter by Status</label>
+              <select id="historyStatusFilter" class="form-control" onchange="loadHistory()">
+                <option value="">All statuses</option>
+                <option value="fresh">Fresh</option>
+                <option value="good">Good</option>
+                <option value="moderate">Moderate</option>
+                <option value="spoiling">Spoiling</option>
+                <option value="spoiled">Spoiled</option>
+              </select>
+            </div>
+            <button class="btn btn-ghost" onclick="loadHistory()">🔍 Apply</button>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table class="data-table" id="historyTable">
+              <thead>
+                <tr>
+                  <th>Food Type</th>
+                  <th>Status</th>
+                  <th>Freshness %</th>
+                  <th>Days Left</th>
+                  <th>Temp °C</th>
+                  <th>Humidity %</th>
+                  <th>Gas ppm</th>
+                  <th>Confidence</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody">
+                <tr><td colspan="9" class="table-empty">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination-wrap" id="paginationWrap">
+            <button class="page-btn" id="prevPageBtn" onclick="changePage(-1)">← Prev</button>
+            <span class="page-info" id="pageInfo">Page 1</span>
+            <button class="page-btn" id="nextPageBtn" onclick="changePage(1)">Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ANALYTICS TAB ──────────────────────────────────── -->
+      <div class="tab-panel" id="tab-analytics">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Analytics</h1>
+            <p class="page-subtitle">Insights from your freshness data</p>
+          </div>
+          <button class="btn btn-ghost" onclick="loadAnalytics()">🔄 Refresh</button>
+        </div>
+
+        <!-- Summary stats (same as dashboard but always visible here) -->
+        <div class="stats-grid" id="analyticsStats">
+          <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-body"><div class="stat-value" id="aTotalVal">—</div><div class="stat-label">Total Predictions</div></div></div>
+          <div class="stat-card stat-warning"><div class="stat-icon">⚠️</div><div class="stat-body"><div class="stat-value" id="aSpoileVal">—</div><div class="stat-label">Spoilage Rate</div></div></div>
+          <div class="stat-card stat-success"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-value" id="aFreshVal">—</div><div class="stat-label">Avg Freshness</div></div></div>
+          <div class="stat-card stat-info"><div class="stat-icon">📅</div><div class="stat-body"><div class="stat-value" id="aDaysVal">—</div><div class="stat-label">Avg Days Left</div></div></div>
+        </div>
+
+        <!-- Charts 2×2 -->
+        <div class="charts-grid">
+          <div class="card chart-card">
+            <div class="card-header"><h3 class="chart-title">Status Distribution</h3></div>
+            <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+          </div>
+          <div class="card chart-card">
+            <div class="card-header"><h3 class="chart-title">Food Type Frequency</h3></div>
+            <div class="chart-wrap"><canvas id="foodTypeChart"></canvas></div>
+          </div>
+          <div class="card chart-card chart-wide">
+            <div class="card-header"><h3 class="chart-title">Freshness Trend (Last 30)</h3></div>
+            <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+          </div>
+          <div class="card chart-card">
+            <div class="card-header"><h3 class="chart-title">Avg Freshness by Food Type</h3></div>
+            <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="empty-state" id="analyticsEmpty" style="display:none">
+          <div class="empty-icon">📊</div>
+          <h3>No data to analyze yet</h3>
+          <p>Make some predictions first, then come back here!</p>
+          <button class="btn btn-primary" onclick="switchTab('predict')">Start Predicting →</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="loading-overlay" style="display:none">
+    <div class="loading-card">
+      <div class="loading-spinner"></div>
+      <p class="loading-text" id="loadingText">Analyzing freshness...</p>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script src="js/dashboard.js"></script>
+  <script src="js/charts.js"></script>
+</body>
+</html>

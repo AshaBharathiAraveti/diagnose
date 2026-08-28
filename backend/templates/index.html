@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Food Freshness Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <h1>IoT-Based Food Freshness Monitoring System</h1>
+        <p>Food Freshness System Using IoT and Intelligent Sensor FusionDashboard</p>
+    </header>
+    <div id="alertBanner" class="alert hidden"></div>
+
+    <!-- Main Container -->
+    <div class="container">
+
+        <!-- Food Information Section -->
+        <section class="food-info">
+            <h2>Detected Food</h2>
+            <div class="food-card">
+                <p><strong>Food Type:</strong> 
+                    <span id="foodType">--</span>
+                </p>
+            </div>
+        </section>
+
+        <!-- Sensor Readings Section -->
+        <section class="sensor-section">
+            <h2>Sensor Readings</h2>
+
+            <div class="sensor-cards">
+                <div class="card">
+                    <h3>Temperature</h3>
+                    <p id="temperature">-- °C</p>
+                </div>
+
+                <div class="card">
+                    <h3>Humidity</h3>
+                    <p id="humidity">-- %</p>
+                </div>
+
+                <div class="card">
+                    <h3>Gas Level</h3>
+                    <p id="gas">-- ppm</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Prediction / Freshness Section -->
+        <section class="prediction-section">
+            <h2>Freshness Status</h2>
+
+            <div class="prediction-cards">
+                <div class="card status">
+                    <h3>Status</h3>
+                    <p id="status">--</p>
+                </div>
+
+                <div class="card">
+                    <h3>Remaining Shelf Life</h3>
+                    <p id="remainingDays">-- days</p>
+                </div>
+
+                <div class="card">
+                    <h3>Freshness Percentage</h3>
+                    <p id="freshness">-- %</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- History Table Section -->
+        <section class="history-section">
+            <h2>History</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Food</th>
+                        <th>Temp (°C)</th>
+                        <th>Humidity (%)</th>
+                        <th>Gas (ppm)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTable">
+                    <!-- Data will be inserted dynamically later -->
+                    <tr>
+                        <td colspan="6" class="empty">No data available</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="charts-section">
+            <h2>Analytics</h2>
+
+            <div class="chart-container">
+                <canvas id="tempChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="humidityChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="gasChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="freshnessChart"></canvas>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- JavaScript will be added in next step -->
+    <!-- <script src="js/dashboard.js"></script> -->
+
+</body>
+</html>
